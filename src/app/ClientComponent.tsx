@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
-import envConfig from "../../config";
+import envConfig from "../config";
 
 const ClientComponent = () => {
   useEffect(() => {
