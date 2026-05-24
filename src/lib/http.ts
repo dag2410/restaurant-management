@@ -90,7 +90,7 @@ const request = async <Response>(
       ? envConfig.NEXT_PUBLIC_API_ENDPOINT
       : options.baseUrl;
 
-  const fullUrl = `${baseUrl}/${normalizePath(url)}`;
+  const fullUrl = `${baseUrl}${normalizePath(url)}`;
 
   const res = await fetch(fullUrl, {
     ...options,
@@ -168,11 +168,7 @@ const http = {
   ) {
     return request<Response>("GET", url, options);
   },
-  post<Response>(
-    url: string,
-    body: any,
-    options?: Omit<CustomOptions, "body"> | undefined,
-  ) {
+  post<Response>(url: string, body: any, options?: CustomOptions | undefined) {
     return request<Response>("POST", url, { ...options, body });
   },
   put<Response>(
