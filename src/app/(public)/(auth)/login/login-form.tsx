@@ -18,8 +18,12 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { useLoginMutation } from "@/queries/useAuth";
+import { toast } from "sonner";
+import { handleErrorApi } from "@/lib/utils";
 
 export default function LoginForm() {
+  const loginMutation = useLoginMutation();
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
     defaultValues: {
@@ -28,8 +32,17 @@ export default function LoginForm() {
     },
   });
 
-  function onSubmit(values: LoginBodyType) {
-    console.log(values);
+  async function onSubmit(values: LoginBodyType) {
+    if (loginMutation.isPending) return;
+    try {
+      await loginMutation.mutateAsync(values);
+      toast.success("Đăng nhập thành công");
+    } catch (error: any) {
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    }
   }
 
   return (
@@ -42,7 +55,9 @@ export default function LoginForm() {
 
       <CardContent>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(onSubmit, (err) => {
+            console.warn("Validation errors", err);
+          })}
           className="space-y-4"
           noValidate
         >
