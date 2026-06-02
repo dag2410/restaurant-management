@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const cookiesStore = await cookies();
 
   try {
-    const { payload } = await authApiRequest.sLogin(body);  
+    const { payload } = await authApiRequest.sLogin(body);
 
     const { accessToken, refreshToken } = payload.data;
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
-      expires: decodeAccessToken.exp * 1000,
+      expires: new Date(decodeAccessToken.exp * 1000),
     });
 
     return Response.json(payload);
