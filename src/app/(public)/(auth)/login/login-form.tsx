@@ -21,8 +21,10 @@ import {
 import { useLoginMutation } from "@/queries/useAuth";
 import { toast } from "sonner";
 import { handleErrorApi } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
+  const router = useRouter();
   const loginMutation = useLoginMutation();
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
@@ -37,6 +39,7 @@ export default function LoginForm() {
     try {
       await loginMutation.mutateAsync(values);
       toast.success("Đăng nhập thành công");
+      router.push("/manage/dashboard");
     } catch (error: any) {
       handleErrorApi({
         error,

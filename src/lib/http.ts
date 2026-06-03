@@ -90,7 +90,11 @@ const request = async <Response>(
       ? envConfig.NEXT_PUBLIC_API_ENDPOINT
       : options.baseUrl;
 
-  const fullUrl = `${baseUrl}${normalizePath(url)}`;
+  const cleanUrl = normalizePath(url);
+
+  const fullUrl = baseUrl
+    ? `${baseUrl.replace(/\/$/, "")}/${cleanUrl}`
+    : `/${cleanUrl}`;
 
   const res = await fetch(fullUrl, {
     ...options,
