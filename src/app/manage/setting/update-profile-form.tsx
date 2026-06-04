@@ -17,8 +17,18 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useRef, useState } from "react";
+import { useAccountProfile } from "@/queries/useAccount";
 
 export default function UpdateProfileForm() {
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const previewAvatar = () => {
+    if (file) {
+      return URL.createObjectURL(file);
+    }
+    return avatar;
+  };
   const form = useForm<UpdateMeBodyType>({
     resolver: zodResolver(UpdateMeBody),
     defaultValues: {
@@ -26,6 +36,23 @@ export default function UpdateProfileForm() {
       avatar: "",
     },
   });
+  const { data } = useAccountProfile();
+  const avatar = form.watch("avatar");
+  const name = form.watch("name");
+
+  useEffect(() => {
+    if (data) {
+      const { name, avatar } = data.payload.data;
+      form.reset({
+        name,
+        avatar: avatar ?? "",
+      });
+    }
+  }, [form, data]);
+
+  // useAccountProfile((data) => {
+  //   const { name, avatar } = data.data;
+  // });
 
   const onSubmit = (values: UpdateMeBodyType) => {
     console.log(values);
@@ -48,15 +75,27 @@ export default function UpdateProfileForm() {
             <Field>
               <div className="flex gap-2 items-start justify-start">
                 <Avatar className="aspect-square w-[100px] h-[100px] rounded-md object-cover">
-                  <AvatarImage src="Duoc" />
-                  <AvatarFallback className="rounded-none">duoc</AvatarFallback>
+                  <AvatarImage src={previewAvatar()} />
+                  <AvatarFallback className="rounded-none">
+                    {name}
+                  </AvatarFallback>
                 </Avatar>
 
-                <input type="file" accept="image/*" className="hidden" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    setFile(e.target.files?.[0] || null);
+                    console.log(e.target.files?.[0]);
+                  }}
+                  ref={avatarInputRef}
+                />
 
                 <button
                   type="button"
                   className="flex aspect-square w-[100px] items-center justify-center rounded-md border border-dashed"
+                  onClick={() => avatarInputRef.current?.click()}
                 >
                   <Upload className="h-4 w-4 text-muted-foreground" />
                   <span className="sr-only">Upload</span>
@@ -66,7 +105,7 @@ export default function UpdateProfileForm() {
 
             {/* Name */}
             <Field>
-              <FieldLabel htmlFor="name">Tên</FieldLabel>
+              <FieldLabel htmlFor="name">{"Tên"}</FieldLabel>
 
               <FieldContent>
                 <Input
