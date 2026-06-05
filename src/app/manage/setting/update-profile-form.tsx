@@ -1,34 +1,31 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Field,
+  FieldContent,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Upload } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { handleErrorApi } from "@/lib/utils";
+import { useAccountMe, useUpdateMeMutation } from "@/queries/useAccount";
+import { useUploadMediaMutation } from "@/queries/useMedia";
 import {
   UpdateMeBody,
   UpdateMeBodyType,
 } from "@/schemaValidations/account.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Field,
-  FieldLabel,
-  FieldContent,
-  FieldError,
-} from "@/components/ui/field";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useAccountProfile } from "@/queries/useAccount";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export default function UpdateProfileForm() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const previewAvatar = () => {
-    if (file) {
-      return URL.createObjectURL(file);
-    }
-    return avatar;
-  };
   const form = useForm<UpdateMeBodyType>({
     resolver: zodResolver(UpdateMeBody),
     defaultValues: {
@@ -36,9 +33,12 @@ export default function UpdateProfileForm() {
       avatar: "",
     },
   });
-  const { data } = useAccountProfile();
+  const { data, refetch } = useAccountMe();
   const avatar = form.watch("avatar");
   const name = form.watch("name");
+  const previewAvatar = file ? URL.createObjectURL(file) : avatar;
+  const updateMeMutation = useUpdateMeMutation();
+  const uploadMediaMutation = useUploadMediaMutation();
 
   useEffect(() => {
     if (data) {
@@ -50,17 +50,39 @@ export default function UpdateProfileForm() {
     }
   }, [form, data]);
 
-  // useAccountProfile((data) => {
-  //   const { name, avatar } = data.data;
-  // });
 
-  const onSubmit = (values: UpdateMeBodyType) => {
-    console.log(values);
+  const reset = () => {
+    form.reset();
+    setFile(null);
+  };
+
+  const onSubmit = async (values: UpdateMeBodyType) => {
+    if (updateMeMutation.isPending) return;
+    try {
+      let body = values;
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadImageResult =
+          await uploadMediaMutation.mutateAsync(formData);
+        const imageUrl = uploadImageResult.payload.data;
+        body = {
+          ...values,
+          avatar: imageUrl,
+        };
+      }
+      await updateMeMutation.mutateAsync(body);
+      toast("Cập nhật thành công!");
+      refetch();
+    } catch (error) {
+      handleErrorApi({ error, setError: form.setError });
+    }
   };
 
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
+      onReset={reset}
       noValidate
       className="grid auto-rows-max items-start gap-4 md:gap-8"
     >
@@ -75,7 +97,7 @@ export default function UpdateProfileForm() {
             <Field>
               <div className="flex gap-2 items-start justify-start">
                 <Avatar className="aspect-square w-[100px] h-[100px] rounded-md object-cover">
-                  <AvatarImage src={previewAvatar()} />
+                  <AvatarImage src={previewAvatar} />
                   <AvatarFallback className="rounded-none">
                     {name}
                   </AvatarFallback>

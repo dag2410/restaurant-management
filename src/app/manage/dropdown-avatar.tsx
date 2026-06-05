@@ -1,4 +1,6 @@
 "use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,19 +9,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { useLogoutMutation } from "@/queries/useAuth";
 import { handleErrorApi } from "@/lib/utils";
+import { useAccountMe } from "@/queries/useAccount";
+import { useLogoutMutation } from "@/queries/useAuth";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAccountProfile } from "@/queries/useAccount";
 
 export default function DropdownAvatar() {
   const router = useRouter();
   const logoutMutation = useLogoutMutation();
-  const { data } = useAccountProfile();
+  const { data } = useAccountMe();
   const account = data?.payload.data;
 
   const logout = async () => {
