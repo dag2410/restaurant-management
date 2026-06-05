@@ -18,8 +18,12 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { useChangePasswordMutation } from "@/queries/useAccount";
+import { toast } from "sonner";
+import { handleErrorApi } from "@/lib/utils";
 
 export default function ChangePasswordForm() {
+  const changePasswordMutation = useChangePasswordMutation();
   const form = useForm<ChangePasswordBodyType>({
     resolver: zodResolver(ChangePasswordBody),
     defaultValues: {
@@ -29,13 +33,27 @@ export default function ChangePasswordForm() {
     },
   });
 
-  const onSubmit = (values: ChangePasswordBodyType) => {
-    console.log(values);
+  const onSubmit = async (values: ChangePasswordBodyType) => {
+    if (changePasswordMutation.isPending) return;
+    try {
+      const result = await changePasswordMutation.mutateAsync(values);
+      toast(result.payload.message);
+    } catch (error) {
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    }
+  };
+
+  const reset = () => {
+    form.reset();
   };
 
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
+      onReset={reset}
       noValidate
       className="grid auto-rows-max items-start gap-4 md:gap-8"
     >
@@ -52,6 +70,7 @@ export default function ChangePasswordForm() {
 
               <FieldContent>
                 <Input
+                  autoComplete="current-password"
                   id="oldPassword"
                   type="password"
                   className="w-full"
@@ -72,6 +91,7 @@ export default function ChangePasswordForm() {
 
               <FieldContent>
                 <Input
+                  autoComplete="new-password"
                   id="password"
                   type="password"
                   className="w-full"
@@ -94,6 +114,7 @@ export default function ChangePasswordForm() {
 
               <FieldContent>
                 <Input
+                  autoComplete="new-password"
                   id="confirmPassword"
                   type="password"
                   className="w-full"
@@ -109,7 +130,7 @@ export default function ChangePasswordForm() {
             </Field>
 
             <div className="flex items-center gap-2 md:ml-auto">
-              <Button variant="outline" size="sm" type="button">
+              <Button variant="outline" size="sm" type="reset">
                 Hủy
               </Button>
 
