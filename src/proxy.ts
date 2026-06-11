@@ -31,9 +31,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (unAuthPaths.some((path) => pathname.startsWith(path)) && refreshToken) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
   console.log("Middleware running for path:", pathname);
 
   return NextResponse.next();
