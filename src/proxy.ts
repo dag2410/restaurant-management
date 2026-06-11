@@ -6,13 +6,32 @@ const unAuthPaths = ["/login"];
 // This function can be marked `async` if using `await` inside
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isAuth = Boolean(request.cookies.get("accessToken")?.value);
+  const accessToken = request.cookies.get("accessToken")?.value;
+  const refreshToken = request.cookies.get("refreshToken")?.value;
 
-  if (privatePaths.some((path) => pathname.startsWith(path)) && !isAuth) {
+  // Chưa đăng nhập thì không cho vào private paths
+  if (privatePaths.some((path) => pathname.startsWith(path)) && !refreshToken) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (unAuthPaths.some((path) => pathname.startsWith(path)) && isAuth) {
+  // Đăng nhập rồi thì sẽ không cho vào login nữa
+  if (unAuthPaths.some((path) => pathname.startsWith(path)) && refreshToken) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Trường hợp đăng nhập rồi nhưng mà accessToken lại hết hạn
+  if (
+    privatePaths.some((path) => pathname.startsWith(path)) &&
+    !accessToken &&
+    refreshToken
+  ) {
+    const url = new URL("/logout", request.url);
+    url.searchParams.set("refreshToken", refreshToken);
+
+    return NextResponse.redirect(url);
+  }
+
+  if (unAuthPaths.some((path) => pathname.startsWith(path)) && refreshToken) {
     return NextResponse.redirect(new URL("/", request.url));
   }
   console.log("Middleware running for path:", pathname);
