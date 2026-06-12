@@ -50,6 +50,7 @@ export default function LoginForm() {
     try {
       await loginMutation.mutateAsync(values);
       toast.success("Đăng nhập thành công");
+      setIsAuth(true);
       router.push("/manage/dashboard");
     } catch (error: any) {
       handleErrorApi({
