@@ -1,5 +1,6 @@
 "use client";
 
+import { useAppContext } from "@/components/app-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,23 +9,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { LoginBody, LoginBodyType } from "@/schemaValidations/auth.schema";
 import {
   Field,
   FieldContent,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
-import { useLoginMutation } from "@/queries/useAuth";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 import { handleErrorApi } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useLoginMutation } from "@/queries/useAuth";
+import { LoginBody, LoginBodyType } from "@/schemaValidations/auth.schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const clearTokens = searchParams.get("clearTokens");
+  const { setIsAuth } = useAppContext();
   const loginMutation = useLoginMutation();
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
@@ -33,6 +38,12 @@ export default function LoginForm() {
       password: "",
     },
   });
+
+  useEffect(() => {
+    if (clearTokens) {
+      setIsAuth(false);
+    }
+  }, [clearTokens, setIsAuth]);
 
   async function onSubmit(values: LoginBodyType) {
     if (loginMutation.isPending) return;

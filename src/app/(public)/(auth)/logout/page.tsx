@@ -6,7 +6,7 @@ import {
 } from "@/lib/utils";
 import { useLogoutMutation } from "@/queries/useAuth";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export default function LogoutPage() {
   const { mutateAsync } = useLogoutMutation();
@@ -18,21 +18,22 @@ export default function LogoutPage() {
 
   useEffect(() => {
     if (
-      ref.current ||
-      (refreshTokenFromUrl &&
-        refreshTokenFromUrl !== getRefreshTokenFromLocalStorage()) ||
-      (accessTokenFromUrl &&
-        accessTokenFromUrl !== getAccessTokenFromLocalStorage())
+      !ref.current &&
+      ((refreshTokenFromUrl &&
+        refreshTokenFromUrl === getRefreshTokenFromLocalStorage()) ||
+        (accessTokenFromUrl &&
+          accessTokenFromUrl === getAccessTokenFromLocalStorage()))
     ) {
-      return;
+      ref.current = mutateAsync;
+      mutateAsync().then((res) => {
+        router.push("/login");
+        setTimeout(() => {
+          ref.current = null;
+        }, 1000);
+      });
+    } else {
+      router.push("/");
     }
-    ref.current = mutateAsync;
-    mutateAsync().then((res) => {
-      router.push("/login");
-      setTimeout(() => {
-        ref.current = null;
-      }, 1000);
-    });
   }, [mutateAsync, router, refreshTokenFromUrl, accessTokenFromUrl]);
   return <div>Logout...</div>;
 }
