@@ -30,7 +30,7 @@ export default function UpdateProfileForm() {
     resolver: zodResolver(UpdateMeBody),
     defaultValues: {
       name: "",
-      avatar: "",
+      avatar: undefined,
     },
   });
   const { data, refetch } = useAccountMe();
@@ -45,11 +45,10 @@ export default function UpdateProfileForm() {
       const { name, avatar } = data.payload.data;
       form.reset({
         name,
-        avatar: avatar ?? "",
+        avatar: avatar ?? undefined,
       });
     }
   }, [form, data]);
-
 
   const reset = () => {
     form.reset();
