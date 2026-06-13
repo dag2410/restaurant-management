@@ -25,11 +25,17 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
+import { useAddAccountMutation } from "@/queries/useAccount";
+import { useUploadMediaMutation } from "@/queries/useMedia";
+import { toast } from "sonner";
+import { handleErrorApi } from "@/lib/utils";
 
 export default function AddEmployee() {
   const [file, setFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const addAccountMutation = useAddAccountMutation();
+  const uploadMediaMutation = useUploadMediaMutation();
 
   const form = useForm<CreateEmployeeAccountBodyType>({
     resolver: zodResolver(CreateEmployeeAccountBody),
@@ -52,10 +58,34 @@ export default function AddEmployee() {
     return avatar;
   }, [file, avatar]);
 
-  const onSubmit = form.handleSubmit((values) => {
-    console.log(values);
-    // Xử lý logic tạo thành công ở đây (gọi mutation API...)
-  });
+  const reset = () => {
+    form.reset();
+    setFile(null);
+  };
+
+  const onSubmit = async (values: CreateEmployeeAccountBodyType) => {
+    if (addAccountMutation.isPending) return;
+    try {
+      let body = values;
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadImageResult =
+          await uploadMediaMutation.mutateAsync(formData);
+        const imageUrl = uploadImageResult.payload.data;
+        body = {
+          ...values,
+          avatar: imageUrl,
+        };
+      }
+      await addAccountMutation.mutateAsync(body);
+      toast("Thêm employee thành công!");
+      reset();
+      setOpen(false);
+    } catch (error) {
+      handleErrorApi({ error, setError: form.setError });
+    }
+  };
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
@@ -77,7 +107,10 @@ export default function AddEmployee() {
 
         <form
           noValidate
-          onSubmit={onSubmit}
+          onSubmit={form.handleSubmit(onSubmit, (e) => {
+            console.log(e);
+          })}
+          onReset={reset}
           className="grid auto-rows-max items-start gap-4 md:gap-8"
           id="add-employee-form"
         >
