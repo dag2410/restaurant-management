@@ -53,6 +53,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useSearchParams } from "next/navigation";
 import AutoPagination from "@/components/auto-pagination";
+import {
+  useDeleteAccountMutation,
+  useGetAccountList,
+} from "@/queries/useAccount";
+import { toast } from "sonner";
+import { handleErrorApi } from "@/lib/utils";
 
 type AccountItem = AccountListResType["data"][0];
 
@@ -69,6 +75,13 @@ const AccountTableContext = createContext<{
 });
 
 export const columns: ColumnDef<AccountType>[] = [
+  {
+    id: "stt",
+    header: "STT",
+    cell: ({ row }) => {
+      return <>{row.index + 1}</>;
+    },
+  },
   {
     accessorKey: "id",
     header: "ID",
@@ -149,6 +162,19 @@ function AlertDialogDeleteAccount({
   employeeDelete: AccountItem | null;
   setEmployeeDelete: (value: AccountItem | null) => void;
 }) {
+  const { mutateAsync } = useDeleteAccountMutation();
+  const deleteAccount = async () => {
+    if (employeeDelete) {
+      try {
+        await mutateAsync(employeeDelete.id);
+        setEmployeeDelete(null);
+        toast("Xóa người dùng thành công.");
+      } catch (error) {
+        handleErrorApi({ error });
+      }
+    }
+  };
+
   return (
     <AlertDialog
       open={Boolean(employeeDelete)}
@@ -171,7 +197,9 @@ function AlertDialogDeleteAccount({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction>Continue</AlertDialogAction>
+          <AlertDialogAction onClick={deleteAccount}>
+            Continue
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -188,7 +216,8 @@ export default function AccountTable() {
   const [employeeDelete, setEmployeeDelete] = useState<AccountItem | null>(
     null,
   );
-  const data: any[] = [];
+  const accountListQuery = useGetAccountList();
+  const data = accountListQuery.data?.payload.data ?? [];
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
