@@ -15,7 +15,7 @@ import {
 } from "@/schemaValidations/account.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +25,10 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
+import { useGetAccount, useUpdateAccountMutation } from "@/queries/useAccount";
+import { useUploadMediaMutation } from "@/queries/useMedia";
+import { toast } from "sonner";
+import { handleErrorApi } from "@/lib/utils";
 
 export default function EditEmployee({
   id,
@@ -49,10 +53,15 @@ export default function EditEmployee({
       changePassword: false,
     },
   });
-
+  const { data } = useGetAccount({
+    id: id as number,
+    enabled: Boolean(id),
+  });
   const avatar = form.watch("avatar");
   const name = form.watch("name");
   const changePassword = form.watch("changePassword");
+  const updateAccountMutation = useUpdateAccountMutation();
+  const uploadMediaMutation = useUploadMediaMutation();
 
   const previewAvatarFromFile = useMemo(() => {
     if (file) {
@@ -61,17 +70,61 @@ export default function EditEmployee({
     return avatar;
   }, [file, avatar]);
 
-  const onSubmit = form.handleSubmit((values) => {
-    console.log(values);
-    onSubmitSuccess?.();
-  });
+  useEffect(() => {
+    if (data) {
+      const { name, avatar, email } = data.payload.data;
+      const currentRole = data.payload.data.role;
+      form.reset({
+        name,
+        avatar: avatar ?? undefined,
+        email,
+        role: currentRole,
+        changePassword: form.getValues("changePassword"),
+        password: form.getValues("password"),
+        confirmPassword: form.getValues("confirmPassword"),
+      });
+    }
+  }, [data]);
+
+  const onSubmit = async (values: UpdateEmployeeAccountBodyType) => {
+    if (updateAccountMutation.isPending) return;
+    try {
+      let body: UpdateEmployeeAccountBodyType & { id: number } = {
+        id: id as number,
+        ...values,
+      };
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadImageResult =
+          await uploadMediaMutation.mutateAsync(formData);
+        const imageUrl = uploadImageResult.payload.data;
+        body = {
+          ...body,
+          avatar: imageUrl,
+          role: "Employee",
+        };
+      }
+      await updateAccountMutation.mutateAsync(body);
+      toast("Cập nhật nhân viên thành công!");
+      onSubmitSuccess && onSubmitSuccess();
+      reset();
+    } catch (error) {
+      handleErrorApi({ error, setError: form.setError });
+    }
+  };
+
+  const reset = () => {
+    setId(undefined);
+    setFile(null);
+  };
 
   return (
     <Dialog
       open={Boolean(id)}
       onOpenChange={(value) => {
         if (!value) {
-          setId(undefined);
+          reset();
         }
       }}
     >
@@ -85,9 +138,11 @@ export default function EditEmployee({
 
         <form
           noValidate
-          onSubmit={onSubmit}
           className="grid auto-rows-max items-start gap-4 md:gap-8"
           id="edit-employee-form"
+          onSubmit={form.handleSubmit(onSubmit, (e) => {
+            console.log(e);
+          })}
         >
           <div className="grid gap-4 py-4">
             {/* AVATAR */}
