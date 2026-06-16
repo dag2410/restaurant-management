@@ -23,15 +23,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TableStatus, TableStatusValues } from "@/constants/type";
-import { getVietnameseTableStatus } from "@/lib/utils";
+import { getVietnameseTableStatus, handleErrorApi } from "@/lib/utils";
+import { useAddTableMutation } from "@/queries/useTable";
 import {
   CreateTableBody,
   CreateTableBodyInput,
+  CreateTableBodyType,
 } from "@/schemaValidations/table.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export default function AddTable() {
   const [open, setOpen] = useState(false);
@@ -44,14 +47,29 @@ export default function AddTable() {
     },
   });
 
+  const addTableMutation = useAddTableMutation();
+
   const statusValue = form.watch("status");
 
-  const onSubmit = form.handleSubmit((values) => {
-    console.log(values);
-    // Xử lý gọi API thêm bàn của bạn ở đây...
+  const onSubmit = async (values: CreateTableBodyInput) => {
+    if (addTableMutation.isPending) return;
+    try {
+      const body = values as CreateTableBodyType;
+      await addTableMutation.mutateAsync(body);
+      toast("Thêm bàn ăn thành công!");
+      reset();
+      setOpen(false);
+    } catch (error) {
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    }
+  };
+
+  const reset = () => {
     form.reset();
-    setOpen(false);
-  });
+  };
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
@@ -75,7 +93,7 @@ export default function AddTable() {
           noValidate
           className="grid auto-rows-max items-start gap-4 md:gap-8"
           id="add-table-form"
-          onSubmit={onSubmit}
+          onSubmit={form.handleSubmit(onSubmit)}
         >
           <div className="grid gap-4 py-4">
             {/* SỐ HIỆU BÀN */}
