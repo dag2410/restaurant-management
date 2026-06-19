@@ -1,4 +1,5 @@
 "use client";
+import QRCodeTable from "@/components/qrcode-table";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,14 +24,22 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { TableStatus, TableStatusValues } from "@/constants/type";
-import { getTableLink, getVietnameseTableStatus } from "@/lib/utils";
+import {
+  getTableLink,
+  getVietnameseTableStatus,
+  handleErrorApi,
+} from "@/lib/utils";
+import { useGetTableQuery, useUpdateTableMutation } from "@/queries/useTable";
 import {
   UpdateTableBody,
   UpdateTableBodyInput,
+  UpdateTableBodyType,
 } from "@/schemaValidations/table.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export default function EditTable({
   id,
@@ -41,31 +50,60 @@ export default function EditTable({
   setId: (value: number | undefined) => void;
   onSubmitSuccess?: () => void;
 }) {
-  const form = useForm<UpdateTableBodyInput>({
+  const form = useForm<UpdateTableBodyInput, any, UpdateTableBodyType>({
     resolver: zodResolver(UpdateTableBody),
     defaultValues: {
-      capacity: 2,
+      capacity: 1,
       status: TableStatus.Hidden,
       changeToken: false,
     },
   });
+  const updateTableMutation = useUpdateTableMutation();
+
+  const { data } = useGetTableQuery({ enabled: Boolean(id), id: id as number });
+
+  useEffect(() => {
+    if (data) {
+      const { capacity, status } = data.payload.data;
+      form.reset({
+        capacity,
+        status,
+        changeToken: form.getValues("changeToken"),
+      });
+    }
+  }, [data]);
 
   // Theo dõi các giá trị của select và switch bằng form.watch
   const statusValue = form.watch("status");
   const changeTokenValue = form.watch("changeToken");
-  const tableNumber = 0;
 
-  const onSubmit = form.handleSubmit((values) => {
-    console.log(values);
-    onSubmitSuccess?.();
-  });
+  const onSubmit = async (values: UpdateTableBodyType) => {
+    if (updateTableMutation.isPending) return;
+    try {
+      let body: UpdateTableBodyType & { id: number } = {
+        id: id as number,
+        ...values,
+      };
+
+      await updateTableMutation.mutateAsync(body);
+      toast("Cập nhật bàn thành công!");
+      onSubmitSuccess && onSubmitSuccess();
+      reset();
+    } catch (error) {
+      handleErrorApi({ error, setError: form.setError });
+    }
+  };
+
+  const reset = () => {
+    setId(undefined);
+  };
 
   return (
     <Dialog
       open={Boolean(id)}
       onOpenChange={(value) => {
         if (!value) {
-          setId(undefined);
+          reset();
         }
       }}
     >
@@ -84,7 +122,9 @@ export default function EditTable({
           noValidate
           className="grid auto-rows-max items-start gap-4 md:gap-8"
           id="edit-table-form"
-          onSubmit={onSubmit}
+          onSubmit={form.handleSubmit(onSubmit, (e) => {
+            console.log(e);
+          })}
         >
           <div className="grid gap-4 py-4">
             {/* SỐ HIỆU BÀN */}
@@ -97,7 +137,7 @@ export default function EditTable({
                       id="number"
                       type="number"
                       className="w-full"
-                      value={tableNumber}
+                      value={data?.payload.data.number ?? 0}
                       readOnly
                     />
                   </FieldContent>
@@ -181,7 +221,14 @@ export default function EditTable({
             <Field>
               <div className="grid grid-cols-4 items-center justify-items-start gap-4">
                 <FieldLabel>QR Code</FieldLabel>
-                <div className="col-span-3 w-full space-y-2"></div>
+                <div className="col-span-3 w-full space-y-2">
+                  {data && (
+                    <QRCodeTable
+                      token={data?.payload.data.token}
+                      tableNumber={data.payload.data.number}
+                    />
+                  )}
+                </div>
               </div>
             </Field>
 
@@ -190,19 +237,21 @@ export default function EditTable({
               <div className="grid grid-cols-4 items-center justify-items-start gap-4">
                 <FieldLabel>URL gọi món</FieldLabel>
                 <div className="col-span-3 w-full space-y-2">
-                  <Link
-                    href={getTableLink({
-                      token: "123123123",
-                      tableNumber: tableNumber,
-                    })}
-                    target="_blank"
-                    className="break-all"
-                  >
-                    {getTableLink({
-                      token: "123123123",
-                      tableNumber: tableNumber,
-                    })}
-                  </Link>
+                  {data && (
+                    <Link
+                      href={getTableLink({
+                        token: data?.payload.data.token,
+                        tableNumber: data?.payload.data.number,
+                      })}
+                      target="_blank"
+                      className="break-all"
+                    >
+                      {getTableLink({
+                        token: data?.payload.data.token,
+                        tableNumber: data?.payload.data.number,
+                      })}
+                    </Link>
+                  )}
                 </div>
               </div>
             </Field>
