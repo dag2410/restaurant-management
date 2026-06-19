@@ -88,7 +88,7 @@ export const checkAndRefreshToken = async (param?: {
   //   Thời gian hết hạn của access dựa trên công thức: exp-iat
   if (
     decodeAccessToken.exp - now <
-    decodeAccessToken.exp - decodeAccessToken.iat / 3
+    (decodeAccessToken.exp - decodeAccessToken.iat) / 3
   ) {
     try {
       const res = await authApiRequest.refreshToken();
