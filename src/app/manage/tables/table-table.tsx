@@ -43,14 +43,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getTableLink, getVietnameseTableStatus } from "@/lib/utils";
+import {
+  getTableLink,
+  getVietnameseTableStatus,
+  handleErrorApi,
+} from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import AutoPagination from "@/components/auto-pagination";
 import { TableListResType } from "@/schemaValidations/table.schema";
 import EditTable from "@/app/manage/tables/edit-table";
 import AddTable from "@/app/manage/tables/add-table";
-import { useTableListQuery } from "@/queries/useTable";
+import { useDeleteTableMutation, useTableListQuery } from "@/queries/useTable";
 import QRCodeTable from "@/components/qrcode-table";
+import { toast } from "sonner";
 
 type TableItem = TableListResType["data"][0];
 
@@ -143,6 +148,19 @@ function AlertDialogDeleteTable({
   tableDelete: TableItem | null;
   setTableDelete: (value: TableItem | null) => void;
 }) {
+  const { mutateAsync } = useDeleteTableMutation();
+  const deleteDish = async () => {
+    if (tableDelete) {
+      try {
+        await mutateAsync(tableDelete.number);
+        setTableDelete(null);
+        toast("Xóa bàn  thành công.");
+      } catch (error) {
+        handleErrorApi({ error });
+      }
+    }
+  };
+
   return (
     <AlertDialog
       open={Boolean(tableDelete)}
@@ -165,7 +183,7 @@ function AlertDialogDeleteTable({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction>Continue</AlertDialogAction>
+          <AlertDialogAction onClick={deleteDish}>Continue</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
