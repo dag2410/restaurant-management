@@ -159,6 +159,6 @@ export const getTableLink = ({
   tableNumber: number;
 }) => {
   return (
-    envConfig.NEXT_PUBLIC_URL + "/tables/" + tableNumber + "?token=" + token
+    envConfig.NEXT_PUBLIC_URL + "tables/" + tableNumber + "?token=" + token
   );
 };
