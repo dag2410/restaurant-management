@@ -1,4 +1,5 @@
 "use client";
+import revalidateApiRequest from "@/apiRequests/revalidate";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,6 +106,7 @@ export default function EditDish({
         };
       }
       await updateDishMutation.mutateAsync(body);
+      await revalidateApiRequest("dishes");
       toast("Cập nhật món ăn thành công!");
       onSubmitSuccess && onSubmitSuccess();
       reset();

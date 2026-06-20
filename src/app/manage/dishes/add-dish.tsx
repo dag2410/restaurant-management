@@ -1,4 +1,5 @@
 "use client";
+import revalidateApiRequest from "@/apiRequests/revalidate";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,6 +88,8 @@ export default function AddDish() {
         };
       }
       addDishMutation.mutateAsync(body);
+      await revalidateApiRequest("dishes");
+
       toast("Thêm món ăn thành công!");
       reset();
       setOpen(false);
