@@ -29,7 +29,7 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clearTokens = searchParams.get("clearTokens");
-  const { setIsAuth } = useAppContext();
+  const { setRole } = useAppContext();
   const loginMutation = useLoginMutation();
   const form = useForm<LoginBodyType>({
     resolver: zodResolver(LoginBody),
@@ -41,16 +41,16 @@ export default function LoginForm() {
 
   useEffect(() => {
     if (clearTokens) {
-      setIsAuth(false);
+      setRole();
     }
-  }, [clearTokens, setIsAuth]);
+  }, [clearTokens, setRole]);
 
   async function onSubmit(values: LoginBodyType) {
     if (loginMutation.isPending) return;
     try {
-      await loginMutation.mutateAsync(values);
+      const result = await loginMutation.mutateAsync(values);
       toast.success("Đăng nhập thành công");
-      setIsAuth(true);
+      setRole(result.payload.data.account.role);
       router.push("/");
     } catch (error: any) {
       handleErrorApi({

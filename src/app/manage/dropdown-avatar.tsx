@@ -22,13 +22,13 @@ export default function DropdownAvatar() {
   const logoutMutation = useLogoutMutation();
   const { data } = useAccountMe();
   const account = data?.payload.data;
-  const { setIsAuth } = useAppContext();
+  const { setRole } = useAppContext();
 
   const logout = async () => {
     if (logoutMutation.isPending) return;
     try {
       await logoutMutation.mutateAsync();
-      setIsAuth(false);
+      setRole();
       router.push("/");
       toast.success("Đăng xuất thành công");
     } catch (error: any) {
