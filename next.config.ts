@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
         port: "4000",
         pathname: "/static/**",
       },
+      {
+        hostname: "via.placeholder.com",
+        pathname: "/**",
+      },
     ],
     dangerouslyAllowLocalIP: true,
   },
