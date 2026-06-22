@@ -2,7 +2,13 @@
 
 import NavItems from "@/app/(public)/nav-items";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Link, Menu, Package2 } from "lucide-react";
 
 export default function MobileMenu() {
@@ -15,6 +21,13 @@ export default function MobileMenu() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left">
+        <div className="sr-only">
+          <SheetTitle>Mobile Navigation Menu</SheetTitle>
+          <SheetDescription>
+            Duyệt tìm các liên kết trên thiết bị di động
+          </SheetDescription>
+        </div>
+
         <nav className="grid gap-6 text-lg font-medium">
           <Link
             href="#"
