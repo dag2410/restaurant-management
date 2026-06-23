@@ -5,9 +5,13 @@ import {
   RefreshTokenResType,
 } from "@/schemaValidations/auth.schema";
 import {
+  GuestCreateOrdersBodyType,
+  GuestCreateOrdersResType,
+  GuestGetOrdersResType,
   GuestLoginBodyType,
   GuestLoginResType,
 } from "@/schemaValidations/guest.schema";
+
 const guestApiRequest = {
   sLogin: (body: GuestLoginBodyType) =>
     http.post<GuestLoginResType>("/guest/auth/login", body),
@@ -45,6 +49,11 @@ const guestApiRequest = {
     http.post<RefreshTokenResType>("/api/guest/auth/refresh-token", null, {
       baseUrl: "",
     }),
+
+  order: (body: GuestCreateOrdersBodyType) =>
+    http.post<GuestCreateOrdersResType>("/guest/orders", body),
+
+  getOrderList: () => http.get<GuestGetOrdersResType>("/guest/orders"),
 };
 
 export default guestApiRequest;
