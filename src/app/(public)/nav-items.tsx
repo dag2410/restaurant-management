@@ -1,5 +1,16 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useAppContext } from "@/components/app-provider";
 import { Role } from "@/constants/type";
 import { cn, handleErrorApi } from "@/lib/utils";
@@ -8,6 +19,7 @@ import { RoleType } from "@/types/jwt.types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const menuItems: {
   title: string;
@@ -84,10 +96,24 @@ export default function NavItems({ className }: { className?: string }) {
 
         return null;
       })}
+
       {role && (
-        <div className={cn(className, "cursor-pointer")} onClick={logout}>
-          Đăng xuất
-        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <div className={cn(className, "cursor-pointer")}>Đăng xuất</div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Bạn có chắc chắn đăng xuất không?
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Thoát</AlertDialogCancel>
+              <AlertDialogAction onClick={logout}>Ok</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </>
   );

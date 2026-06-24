@@ -7,10 +7,12 @@ import { useGuestGetOrderListQuery } from "@/queries/useGuest";
 import { UpdateOrderResType } from "@/schemaValidations/order.schema";
 import Image from "next/image";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function OrdersCart() {
   const { data, refetch } = useGuestGetOrderListQuery();
   const orders = data?.payload.data ?? [];
+  console.log(orders);
 
   const totalPrice = () => {
     return orders.reduce((result, order) => {
@@ -33,6 +35,13 @@ export default function OrdersCart() {
 
     function onUpdateOrder(data: UpdateOrderResType["data"]) {
       refetch();
+      const {
+        dishSnapshot: { name },
+        quantity,
+      } = data;
+      toast.success(
+        `Món ${name} (SL: ${quantity}) đã được cập nhật sang trạng thái ${getVietnameseOrderStatus(data.status)}`,
+      );
     }
 
     socket.on("update-order", onUpdateOrder);
