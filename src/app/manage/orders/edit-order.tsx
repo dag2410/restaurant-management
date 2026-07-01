@@ -24,54 +24,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OrderStatus, OrderStatusValues } from "@/constants/type";
-import { getVietnameseOrderStatus } from "@/lib/utils";
+import { getVietnameseOrderStatus, handleErrorApi } from "@/lib/utils";
+import {
+  useGetOrderDetailQuery,
+  useUpdateOrderMutation,
+} from "@/queries/useOrder";
 import { DishListResType } from "@/schemaValidations/dish.schema";
 import {
   UpdateOrderBody,
   UpdateOrderBodyType,
 } from "@/schemaValidations/order.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-
-const fakeOrderDetail = {
-  id: 30,
-  guestId: 70,
-  guest: {
-    id: 70,
-    name: "An",
-    tableNumber: 2,
-    createdAt: "2024-07-11T04:30:32.728Z",
-    updatedAt: "2024-07-11T05:00:34.131Z",
-  },
-  tableNumber: 2,
-  dishSnapshotId: 36,
-  dishSnapshot: {
-    id: 36,
-    name: "Spaghetti 5",
-    price: 50000,
-    image: "http://localhost:4000/static/e0001b7e08604e0dbabf0d8f95e6174a.jpg",
-    description: "Mỳ ý",
-    status: "Available",
-    dishId: 2,
-    createdAt: "2024-07-11T04:30:57.450Z",
-    updatedAt: "2024-07-11T04:30:57.450Z",
-  },
-  quantity: 1,
-  orderHandlerId: null,
-  orderHandler: null,
-  status: "Paid",
-  createdAt: "2024-07-11T04:30:57.450Z",
-  updatedAt: "2024-07-11T04:31:38.806Z",
-  table: {
-    number: 2,
-    capacity: 10,
-    status: "Reserved",
-    token: "667f3b1ce5e4429990dacea1809d20e7",
-    createdAt: "2024-06-21T06:52:26.847Z",
-    updatedAt: "2024-07-03T04:36:51.130Z",
-  },
-};
+import { toast } from "sonner";
 
 export default function EditOrder({
   id,
@@ -83,9 +49,13 @@ export default function EditOrder({
   onSubmitSuccess?: () => void;
 }) {
   const [selectedDish, setSelectedDish] = useState<DishListResType["data"][0]>(
-    fakeOrderDetail.dishSnapshot as any,
+    null as any,
   );
-  const orderDetail = fakeOrderDetail;
+  const updateOrderMutation = useUpdateOrderMutation();
+  const { data } = useGetOrderDetailQuery({
+    id: id as number,
+    enabled: Boolean(id),
+  });
   const form = useForm<UpdateOrderBodyType>({
     resolver: zodResolver(UpdateOrderBody),
     defaultValues: {
@@ -95,11 +65,45 @@ export default function EditOrder({
     },
   });
 
-  const onSubmit = async (values: UpdateOrderBodyType) => {};
+  const onSubmit = async (values: UpdateOrderBodyType) => {
+    if (updateOrderMutation.isPending) return;
+    try {
+      let body: UpdateOrderBodyType & { orderId: number } = {
+        ...values,
+        orderId: id as number,
+      };
+      await updateOrderMutation.mutateAsync(body);
+      toast("Đơn hàng đã được cập nhật thành công!");
+      reset();
+      onSubmitSuccess?.();
+      setId(undefined);
+    } catch (error) {
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    }
+  };
 
   const reset = () => {
     setId(undefined);
   };
+
+  useEffect(() => {
+    if (data) {
+      const {
+        status,
+        dishSnapshot: { dishId },
+        quantity,
+      } = data.payload.data;
+      form.reset({
+        status,
+        dishId: dishId ?? 0,
+        quantity,
+      });
+      setSelectedDish(data.payload.data.dishSnapshot as any);
+    }
+  }, [data, form]);
 
   return (
     <Dialog
@@ -184,6 +188,7 @@ export default function EditOrder({
                           shouldValidate: true,
                         })
                       }
+                      defaultValue={form.getValues("status") as any}
                     >
                       <SelectTrigger className="w-[200px]">
                         <SelectValue placeholder="Trạng thái" />
