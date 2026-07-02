@@ -18,6 +18,7 @@ import { OrderStatusValues } from "@/constants/type";
 import { getVietnameseOrderStatus, handleErrorApi } from "@/lib/utils";
 import {
   GetOrdersResType,
+  PayGuestOrdersResType,
   UpdateOrderResType,
 } from "@/schemaValidations/order.schema";
 import {
@@ -205,20 +206,29 @@ export default function OrderTable() {
       refetch();
     }
 
+    function onPayment(data: PayGuestOrdersResType["data"]) {
+      const { guest } = data[0];
+      toast.success(
+        ` ${guest?.name} tại bàn ${guest?.tableNumber} thanh toán thành công ${data.length} món `,
+      );
+      refetch();
+    }
+
     socket.on("update-order", onUpdateOrder);
     socket.on("connect", onConnect);
     socket.on("new-order", onNewOrder);
+    socket.on("payment", onPayment);
     socket.on("disconnect", onDisconnect);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
-      socket.on("new-order", onNewOrder);
+      socket.off("new-order", onNewOrder);
+      socket.off("payment", onPayment);
       socket.off("update-order", onUpdateOrder);
     };
   }, [refetchOrderList, fromDate, toDate]);
 
-  
   return (
     <OrderTableContext.Provider
       value={{

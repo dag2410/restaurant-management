@@ -7,19 +7,26 @@ import {
   formatDateTimeToLocaleString,
   formatDateTimeToTimeString,
   getVietnameseOrderStatus,
+  handleErrorApi,
 } from "@/lib/utils";
-import { GetOrdersResType } from "@/schemaValidations/order.schema";
+import { usePayForGuestMutation } from "@/queries/useOrder";
+import {
+  GetOrdersResType,
+  PayGuestOrdersResType,
+} from "@/schemaValidations/order.schema";
 import Image from "next/image";
-import { Fragment } from "react";
+import { toast } from "sonner";
 
 type Guest = GetOrdersResType["data"][0]["guest"];
 type Orders = GetOrdersResType["data"];
 export default function OrderGuestDetail({
   guest,
   orders,
+  onPaySuccess,
 }: {
   guest: Guest;
   orders: Orders;
+  onPaySuccess?: (data?: PayGuestOrdersResType) => void;
 }) {
   const ordersFilterToPurchase = guest
     ? orders.filter(
@@ -28,13 +35,32 @@ export default function OrderGuestDetail({
           order.status !== OrderStatus.Rejected,
       )
     : [];
+
   const purchasedOrderFilter = guest
     ? orders.filter((order) => order.status === OrderStatus.Paid)
     : [];
+
+  const payForGuestMutation = usePayForGuestMutation();
+
+  const pay = async () => {
+    if (payForGuestMutation.isPending || !guest) return;
+    try {
+      const result = await payForGuestMutation.mutateAsync({
+        guestId: guest?.id as number,
+      });
+      toast.success("Thanh toán thành công");
+      onPaySuccess && onPaySuccess(result.payload);
+    } catch (error) {
+      handleErrorApi({
+        error,
+      });
+    }
+  };
+
   return (
     <div className="space-y-2 text-sm">
       {guest && (
-        <Fragment>
+        <>
           <div className="space-x-1">
             <span className="font-semibold">Tên:</span>
             <span>{guest.name}</span>
@@ -47,7 +73,7 @@ export default function OrderGuestDetail({
             <span className="font-semibold">Ngày đăng ký:</span>
             <span>{formatDateTimeToLocaleString(guest.createdAt)}</span>
           </div>
-        </Fragment>
+        </>
       )}
 
       <div className="space-y-1">
@@ -147,6 +173,7 @@ export default function OrderGuestDetail({
           size={"sm"}
           variant={"secondary"}
           disabled={ordersFilterToPurchase.length === 0}
+          onClick={pay}
         >
           Thanh toán tất cả ({ordersFilterToPurchase.length} đơn)
         </Button>
