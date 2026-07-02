@@ -1,12 +1,16 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { OrderStatus } from "@/constants/type";
 import socket from "@/lib/socket";
 import { formatCurrency, getVietnameseOrderStatus } from "@/lib/utils";
 import { useGuestGetOrderListQuery } from "@/queries/useGuest";
-import { UpdateOrderResType } from "@/schemaValidations/order.schema";
+import {
+  PayGuestOrdersResType,
+  UpdateOrderResType,
+} from "@/schemaValidations/order.schema";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 export default function OrdersCart() {
@@ -14,11 +18,50 @@ export default function OrdersCart() {
   const orders = data?.payload.data ?? [];
   console.log(orders);
 
-  const totalPrice = () => {
-    return orders.reduce((result, order) => {
-      return result + order.dishSnapshot.price * order.quantity;
-    }, 0);
-  };
+  const { waitingForPaying, paid } = (() => {
+    return orders.reduce(
+      (result, order) => {
+        if (
+          order.status === OrderStatus.Delivered ||
+          order.status === OrderStatus.Processing ||
+          order.status === OrderStatus.Pending
+        ) {
+          return {
+            ...result,
+            waitingForPaying: {
+              price:
+                result.waitingForPaying.price +
+                order.dishSnapshot.price * order.quantity,
+              quantity: result.waitingForPaying.quantity + order.quantity,
+            },
+          };
+        }
+
+        if (order.status === OrderStatus.Paid) {
+          return {
+            ...result,
+            paid: {
+              price:
+                result.paid.price + order.dishSnapshot.price * order.quantity,
+              quantity: result.paid.quantity + order.quantity,
+            },
+          };
+        }
+
+        return result;
+      },
+      {
+        waitingForPaying: {
+          price: 0,
+          quantity: 0,
+        },
+        paid: {
+          price: 0,
+          quantity: 0,
+        },
+      },
+    );
+  })();
 
   useEffect(() => {
     if (socket.connected) {
@@ -44,13 +87,23 @@ export default function OrdersCart() {
       );
     }
 
+    function onPayment(data: PayGuestOrdersResType["data"]) {
+      const { guest } = data[0];
+      toast.success(
+        ` ${guest?.name} tại bàn ${guest?.tableNumber} thanh toán thành công ${data.length} món `,
+      );
+      refetch();
+    }
+
     socket.on("update-order", onUpdateOrder);
     socket.on("connect", onConnect);
+    socket.on("payment", onPayment);
     socket.on("disconnect", onDisconnect);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
+      socket.off("payment", onPayment);
       socket.off("update-order", onUpdateOrder);
     };
   }, [refetch]);
@@ -82,12 +135,23 @@ export default function OrdersCart() {
         </div>
       ))}
 
+      {paid.quantity !== 0 && (
+        <div className="mt-4 pt-4 border-t border-dashed flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">
+            Đơn đã thanh toán {paid.quantity} món:
+          </span>
+          <span className="text-lg font-bold text-primary">
+            {formatCurrency(paid.price)}
+          </span>
+        </div>
+      )}
+
       <div className="mt-4 pt-4 border-t border-dashed flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">
-          Tổng cộng {orders.length} món:
+          Đơn chưa thanh toán {waitingForPaying.quantity} món:
         </span>
         <span className="text-lg font-bold text-primary">
-          {formatCurrency(totalPrice())}
+          {formatCurrency(waitingForPaying.price)}
         </span>
       </div>
     </div>
